@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/atotto/clipboard"
 )
 
 var fileTypeMap = map[string]string{
@@ -38,39 +41,54 @@ var fileTypeMap = map[string]string{
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Printf("Usage: ./%s <output_file> <file_or_directory1> [<file_or_directory2> ...]", os.Args[0])
+	copyToClipboard := flag.Bool("c", false, "Copy output to clipboard")
+	fileList := flag.String("f", "", "Comma-separated list of files or directories to process")
+	outputFileP := flag.String("o", "", "Output file list")
+	flag.Parse()
+	outputFile := *outputFileP
+	if *fileList == "" {
+		fmt.Println("Please provide a list of files or directories using the --f flag.")
 		os.Exit(1)
-	}
-
-	outputFile := os.Args[1]
-	if outputFile == "" {
-		fmt.Println("Output file name cannot be empty.")
+	} else if outputFile == "" && !*copyToClipboard {
+		fmt.Println("Please provide an output file via --o flag if clipboard is disabled")
 		os.Exit(1)
-	}
-
-	if fileExists(outputFile) {
+	} else if fileExists(outputFile) && *copyToClipboard {
 		fmt.Printf("Output file '%s' already exists or contains text.\n", outputFile)
+		os.Exit(1)
+	} else if outputFile != "" && *copyToClipboard {
+		fmt.Println("Output file and clipboard=true passed, cannot write to file when copying to clipboard")
 		os.Exit(1)
 	}
 
 	var output strings.Builder
-
-	for _, path := range os.Args[2:] {
-		err := processPath(path, &output)
+	for _, path := range strings.Split(*fileList, ",") {
+		if _, err := os.Stat(strings.TrimSpace(path)); os.IsNotExist(err) {
+			fmt.Printf("File or directory '%s' does not exist.\n", path)
+			os.Exit(1)
+		}
+		err := processPath(strings.TrimSpace(path), &output)
 		if err != nil {
 			fmt.Printf("Error processing path %s: %v\n", path, err)
 			os.Exit(1)
 		}
 	}
 
-	err := os.WriteFile(outputFile, []byte(output.String()), 0644)
-	if err != nil {
-		fmt.Printf("Error writing to %s: %v\n", outputFile, err)
-		os.Exit(1)
-	}
+	if *copyToClipboard {
+		err := clipboard.WriteAll(output.String())
+		if err != nil {
+			fmt.Println("Error copying output to clipboard:", err)
+			os.Exit(1)
+		}
+		fmt.Println("Output copied to clipboard.")
+	} else {
+		err := os.WriteFile(outputFile, []byte(output.String()), 0644)
+		if err != nil {
+			fmt.Printf("Error writing to %s: %v\n", outputFile, err)
+			os.Exit(1)
+		}
 
-	fmt.Printf("Files processed successfully. Output saved to %s.\n", outputFile)
+		fmt.Printf("Files processed successfully. Output saved to %s.\n", outputFile)
+	}
 }
 
 func fileExists(filename string) bool {
@@ -80,7 +98,6 @@ func fileExists(filename string) bool {
 	}
 	return !info.IsDir() && info.Size() > 0
 }
-
 func processPath(path string, output *strings.Builder) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -127,4 +144,3 @@ func processFile(file string, output *strings.Builder) error {
 
 	return nil
 }
-

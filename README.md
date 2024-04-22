@@ -6,7 +6,7 @@ CLI Tool allowing you to format multiple files for AI's
 
 ### Output Example 
 ```
-ai-walk output.txt main.go src
+ai-walk -f=main.go,src -o=text.txt
 ```
 
 ```
@@ -32,13 +32,18 @@ Wait for the installation to complete. The executable will be installed in your 
 ### Usage
 
 
-Open a terminal or command prompt.
+#### Output to file 
+```
+ai-walk -o=text.txt -f=main.go,directoryName
+```
 
+#### Output to clipboard
 ```
-ai-walk output.txt file1.go /path/to/directory
+ai-walk -c=true -f=main.go,directoryName
 ```
+
 
 ### Note:
-If the output file already exists the program will not over-write it to avoid code los s
+If the output file already exists the program will not over-write it to avoid code loss
 
 
