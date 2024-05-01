@@ -1,4 +1,4 @@
-## AI-Walk
+## Ai-Walk
 CLI Tool allowing you to format multiple files for AI's 
 
 ### Output Example 
